@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import ListFeed from './ListFeed';
+import { Icon } from 'native-base';
 export default class AppContainer extends Component {
   constructor(props) {
     super(props);
@@ -10,22 +11,19 @@ export default class AppContainer extends Component {
 
   render() {
     return (
-      <View style={{margin:10}}>
-          <View style={styles.viewLatestPosts}>
+      <View style={{margin:10,flex:1}}>
+          <View style={stylesAppContainer.viewLatestPosts}>
             <Text/>
-            <Text style={styles.latestPosts}>LATEST POSTS</Text>
-            <Text style={styles.filterIcon}>Filter</Text>
+            <Text style={stylesAppContainer.latestPosts}>LATEST POSTS</Text>
           </View>
           <ListFeed/>
       </View>
     );
   }
 }
-const styles = StyleSheet.create({
+const stylesAppContainer = StyleSheet.create({
     viewLatestPosts: {
         margin:10,
-        flexDirection:"row",
-        justifyContent:"space-between"
     },
     latestPosts: {
         alignSelf:"center",
@@ -35,5 +33,7 @@ const styles = StyleSheet.create({
         fontWeight:"bold"
     },
     filterIcon: {
+      fontSize:24,
+      color:"lightblue"
     }
 })
