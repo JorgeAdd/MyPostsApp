@@ -14,7 +14,7 @@ export default class AppContainer extends Component {
       <View style={{margin:10,flex:1}}>
           <View style={stylesAppContainer.viewLatestPosts}>
             <Text/>
-            <Text style={stylesAppContainer.latestPosts}>LATEST POSTS</Text>
+            <Text style={stylesAppContainer.latestPosts}>MY POSTS APP</Text>
           </View>
           <ListFeed/>
       </View>

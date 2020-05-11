@@ -1,14 +1,86 @@
 import React, { Component } from 'react';
-import { View,Image, StyleSheet } from 'react-native';
-import { Card,CardItem, Body, Header, Container, Content, Fab, Icon, Footer, Button,Text } from 'native-base';
+import { View,Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { Card,CardItem, Body, Header, Container, Content, Fab, Icon, Footer, Button,Text, Input, Toast } from 'native-base';
 import Display from 'react-native-display';
+import AsyncStorage from '@react-native-community/async-storage';
 export default class ListFeed extends Component {
   constructor(props) {
     super(props);
     this.state = {
       feedDisplay:true,
       newPostDisplay:false,
+      feeds:"",
+      titleNewPost:"",
+      descNewPost:"",
+      imageUriNewPost:"../img/descarga.png",
+      locationNewPost:"Aguascalientesss Ags MX",
+      postKey:0
     };
+  }
+
+  componentDidMount(){
+    AsyncStorage.removeItem('posts')
+    this.loadFeeds();
+  }
+
+  async loadFeeds(){
+    var stringFeeds = await AsyncStorage.getItem('posts')
+     this.setState({feeds:JSON.parse(stringFeeds)})
+     console.log("this.state.feeds")
+     console.log(this.state.feeds)
+  }
+
+  addPostButton(){
+    this.setState({feedDisplay:false,newPostDisplay:true})
+  }
+
+  async newPostMethod(){
+    console.log(this.state.titleNewPost);
+    console.log(this.state.descNewPost);
+    
+    if(this.state.titleNewPost != ""){
+      if(this.state.descNewPost != ""){
+        this.setState({postKey: this.state.postKey+1})
+    
+        var newPost = 
+        {
+          key:""+this.state.postKey,
+          title:""+this.state.titleNewPost,
+          desc:""+this.state.descNewPost,
+          img:""+this.state.imageUriNewPost,
+          location:""+this.state.locationNewPost
+        }
+    
+        var posts = await AsyncStorage.getItem('posts')
+        if(posts != null){
+          posts = JSON.parse(posts);
+          posts.push(newPost)
+        }else{
+          posts = [newPost]
+        }
+        await AsyncStorage.setItem('posts',JSON.stringify(posts))
+        this.loadFeeds()
+        this.setState({newPostDisplay:false,feedDisplay:true})
+      }else{
+        Toast.show({
+          text:"Description shouldn't be empty",
+          position:'bottom',
+          type:'danger',
+          duration:5000
+        })
+      }
+    }else{
+      Toast.show({
+        text:"Title shouldn't be empty",
+        position:'bottom',
+        type:'danger',
+        duration:5000
+      })
+    }
+  }
+
+  cancelNewPost(){
+    this.setState({feedDisplay:true,newPostDisplay:false,titleNewPost:"",descNewPost:""})
   }
 
   render() {
@@ -61,9 +133,40 @@ export default class ListFeed extends Component {
               </CardItem>
             </Card>
           </Display>
+
           <Display enable={this.state.newPostDisplay}>
-            <Text>New display</Text>
+            <Card>
+              <CardItem header>
+                <Text>Title *</Text>
+              </CardItem>
+              <CardItem>
+                <Input onChangeText={title => this.setState({ titleNewPost: title })} style={stylesListFeed.inputFormat} />
+              </CardItem>
+              <CardItem>
+                <Text>Description *</Text>
+              </CardItem>
+              <CardItem>
+                <Input multiline={true} numberOfLines={20} onChangeText={desc => this.setState({ descNewPost: desc })} style={stylesListFeed.inputFormat} />
+              </CardItem>
+              <TouchableOpacity>
+                <CardItem>
+                  <Icon type="FontAwesome" name="image" /><Text> Upload an image</Text>
+                </CardItem>
+              </TouchableOpacity>
+              <CardItem>
+                <Text>Location</Text>
+              </CardItem>
+              <CardItem style={{justifyContent:"space-around"}}>
+                <Button style={stylesListFeed.orderSelectedButton} onPress={()=>this.newPostMethod()}>
+                  <Text style={stylesListFeed.orderSelectedText}>Post</Text>
+                </Button>
+                <Button style={stylesListFeed.orderUnselectedButton} onPress={()=>this.cancelNewPost()}>
+                  <Text style={stylesListFeed.orderUnselectedText}>Cancel</Text>
+                </Button>
+              </CardItem>
+            </Card>
           </Display>
+
         </Content>
 
         {this.state.feedDisplay ? 
@@ -81,7 +184,7 @@ export default class ListFeed extends Component {
           active={this.state.feedDisplay}
           position="bottomRight"
           style={stylesListFeed.fabButton}
-          onPress={() => this.setState({feedDisplay:false,newPostDisplay:true})}>
+          onPress={() => this.addPostButton()}>
             <View style={stylesListFeed.fabView}>
             <Icon name="add" style={stylesListFeed.fabIcon}/>
             </View>
@@ -154,5 +257,11 @@ const stylesListFeed = StyleSheet.create({
   fabIcon:{
     fontSize:40,
     color:"blue"
+  },
+  inputFormat: {
+    borderColor:"lightblue",
+    borderWidth:1,
+    borderRadius:5,
+    minHeight:50
   }
 })

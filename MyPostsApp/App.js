@@ -13,6 +13,7 @@ import {
   SafeAreaView,
   YellowBox
 } from 'react-native';
+import {Root} from 'native-base';
 YellowBox.ignoreWarnings(['Warning: componentWillUpdate has been renamed'])
 YellowBox.ignoreWarnings(['Warning: componentWillReceiveProps has been renamed'])
 YellowBox.ignoreWarnings(['Warning: componentWillMount has been renamed'])
@@ -22,12 +23,12 @@ import AppContainer from './src/components/AppContainer';
 export default class App extends Component {
   render(){ 
     return (
-      <>
+      <Root>
         <StatusBar barStyle="dark-content" />
         <SafeAreaView style={styles.safeAreaView}>
           <AppContainer/>
         </SafeAreaView>
-      </>
+      </Root>
     );
   }
 }
