@@ -3,6 +3,7 @@ import { View,Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { Card,CardItem, Body, Header, Container, Content, Fab, Icon, Footer, Button,Text, Input, Toast } from 'native-base';
 import Display from 'react-native-display';
 import AsyncStorage from '@react-native-community/async-storage';
+import {FlatList} from 'react-native-gesture-handler';
 export default class ListFeed extends Component {
   constructor(props) {
     super(props);
@@ -12,14 +13,15 @@ export default class ListFeed extends Component {
       feeds:"",
       titleNewPost:"",
       descNewPost:"",
-      imageUriNewPost:"../img/descarga.png",
+      imageUriNewPost:require("../img/descarga.png"),
       locationNewPost:"Aguascalientesss Ags MX",
-      postKey:0
+      postKey:0,
+      orderBy:"date"
     };
   }
 
   componentDidMount(){
-    AsyncStorage.removeItem('posts')
+    //AsyncStorage.removeItem('posts')
     this.loadFeeds();
   }
 
@@ -28,6 +30,7 @@ export default class ListFeed extends Component {
      this.setState({feeds:JSON.parse(stringFeeds)})
      console.log("this.state.feeds")
      console.log(this.state.feeds)
+     this.setState({postKey:this.state.feeds.length})
   }
 
   addPostButton(){
@@ -35,9 +38,6 @@ export default class ListFeed extends Component {
   }
 
   async newPostMethod(){
-    console.log(this.state.titleNewPost);
-    console.log(this.state.descNewPost);
-    
     if(this.state.titleNewPost != ""){
       if(this.state.descNewPost != ""){
         this.setState({postKey: this.state.postKey+1})
@@ -47,8 +47,9 @@ export default class ListFeed extends Component {
           key:""+this.state.postKey,
           title:""+this.state.titleNewPost,
           desc:""+this.state.descNewPost,
-          img:""+this.state.imageUriNewPost,
-          location:""+this.state.locationNewPost
+          img:this.state.imageUriNewPost,
+          location:""+this.state.locationNewPost,
+          datePosted: new Date()
         }
     
         var posts = await AsyncStorage.getItem('posts')
@@ -58,9 +59,12 @@ export default class ListFeed extends Component {
         }else{
           posts = [newPost]
         }
+        posts.sort(function(a,b){
+          return new Date(b.datePosted) - new Date(a.datePosted)
+        })
         await AsyncStorage.setItem('posts',JSON.stringify(posts))
         this.loadFeeds()
-        this.setState({newPostDisplay:false,feedDisplay:true})
+        this.setState({newPostDisplay:false,feedDisplay:true,titleNewPost:"",descNewPost:""})
       }else{
         Toast.show({
           text:"Description shouldn't be empty",
@@ -83,55 +87,62 @@ export default class ListFeed extends Component {
     this.setState({feedDisplay:true,newPostDisplay:false,titleNewPost:"",descNewPost:""})
   }
 
+  dateSort(){
+    this.setState({orderBy:"date"})
+    var posts = this.state.feeds
+    posts.sort(function(a,b){
+      return new Date(b.datePosted) - new Date(a.datePosted)
+    })
+    this.setState({feeds: posts})
+  }
+
+  titleSort(){
+    this.setState({orderBy:"title"})
+    var posts = this.state.feeds
+    posts.sort(function(a,b){
+      return a.title.localeCompare(b.title)
+    })
+    this.setState({feeds: posts})
+    console.log(this.state.feeds);
+    
+  }
+
   render() {
     return (
       <Container>
-        <Content padder>
+        <View style={{flex:1}}>
           <Display enable={this.state.feedDisplay}>
+            <FlatList data={this.state.feeds} renderItem={({item,index}) => (
             <Card>
               <Icon type="FontAwesome" name="trash" style={stylesListFeed.trashIcon} />
               <CardItem style={{ width: "100%" }}>
-                <Image style={{ width: "100%" }} source={require('../img/descarga.png')} />
+                <Image style={{ width: "100%" }} source={item.img} />
               </CardItem>
               <CardItem header>
-                <Text style={stylesListFeed.headerPost}>First post!</Text>
+                <Text style={stylesListFeed.headerPost}>{item.title}</Text>
               </CardItem>
               <CardItem style={{ flexDirection: "column" }}>
                 <Body>
                   <Text style={stylesListFeed.descPost}>
-                    This is my 1st post ever, you can see that I ran out of ideas to write something interesting.
+                    {item.desc}
                 </Text>
                   <Text style={stylesListFeed.datePost}>
-                    16/02/20
+                    {item.datePosted}
                 </Text>
                 </Body>
               </CardItem>
               <CardItem footer style={{ justifyContent: "center" }}>
                 <Text style={stylesListFeed.footerPost}>
-                  Posted in Aguascalientes, Mexico. See in the map.
-          </Text>
-              </CardItem>
-            </Card>
-            <Card>
-              <CardItem style={{ width: "100%" }}>
-                <Image style={{ width: "100%", top: 0 }} source={require('../img/descarga.png')} />
-              </CardItem>
-              <CardItem header>
-                <Text style={stylesListFeed.headerPost}>First post!</Text>
-              </CardItem>
-              <CardItem>
-                <Body>
-                  <Text style={stylesListFeed.descPost}>
-                    This is my 1st post ever, you can see that I ran out of ideas to write something interesting.
-              </Text>
-                </Body>
-              </CardItem>
-              <CardItem footer style={{ justifyContent: "center" }}>
-                <Text style={stylesListFeed.footerPost}>
-                  Posted in Aguascalientes, Mexico. See in the map.
+                  Posted in {item.location}. See in the map.
                 </Text>
               </CardItem>
             </Card>
+            )}
+            key={item => item.key}
+            keyExtractor={item => item.key.toString()}
+            ListEmptyComponent={<Text style={{textAlign:"center",color:"gray"}}>You haven't posted anything yet!</Text>}
+            ListFooterComponent={<Text>Pag 1</Text>}
+            />
           </Display>
 
           <Display enable={this.state.newPostDisplay}>
@@ -167,17 +178,21 @@ export default class ListFeed extends Component {
             </Card>
           </Display>
 
-        </Content>
+        </View>
 
         {this.state.feedDisplay ? 
         <Footer style={{height:20,backgroundColor:"white",width:"100%", marginBottom:0,paddingBottom:0, flexDirection:"column",}}>
-          <Text style={{marginTop:10}}>Order by:</Text>
+          <Text style={{marginTop:15,marginBottom:5}}>Order by:</Text>
           <View style={{flexDirection:"row",justifyContent:"space-around",width:"75%"}}>
-            <Button style={stylesListFeed.orderSelectedButton}>
-              <Text style={stylesListFeed.orderSelectedText}>Date</Text>
+            <Button style={this.state.orderBy == "date" ? stylesListFeed.orderSelectedButton : stylesListFeed.orderUnselectedButton}
+             onPress={()=> this.dateSort()}>
+              <Text style={this.state.orderBy == "date" ? stylesListFeed.orderSelectedText : stylesListFeed.orderUnselectedText}>
+                Date</Text>
             </Button>
-            <Button style={stylesListFeed.orderUnselectedButton}>
-              <Text style={stylesListFeed.orderUnselectedText}>Title</Text>
+            <Button style={this.state.orderBy == "title" ? stylesListFeed.orderSelectedButton : stylesListFeed.orderUnselectedButton}
+             onPress={()=> this.titleSort()}>
+              <Text style={this.state.orderBy == "title" ? stylesListFeed.orderSelectedText : stylesListFeed.orderUnselectedText}>
+                Title</Text>
             </Button>
           </View>
         <Fab
