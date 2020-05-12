@@ -5,6 +5,7 @@ import Display from 'react-native-display';
 import AsyncStorage from '@react-native-community/async-storage';
 import {FlatList} from 'react-native-gesture-handler';
 import moment from 'moment';
+import ImagePicker from 'react-native-image-picker';
 
 export default class ListFeed extends Component {
   constructor(props) {
@@ -15,7 +16,7 @@ export default class ListFeed extends Component {
       feeds:"",
       titleNewPost:"",
       descNewPost:"",
-      imageUriNewPost:require("../img/descarga.png"),
+      imageUriNewPost:"",
       locationNewPost:"Aguascalientesss Ags MX",
       postKey:0,
       orderBy:"date",
@@ -31,13 +32,13 @@ export default class ListFeed extends Component {
   async loadFeeds(){
     var stringFeeds = await AsyncStorage.getItem('posts')
      this.setState({feeds:JSON.parse(stringFeeds)})
-     console.log("this.state.feeds")
-     console.log(this.state.feeds)
-     this.setState({postKey:this.state.feeds.length})
-  }
-
-  paginateFeeds(){
-
+     if(this.state.feeds == null){
+       console.log("nulo");
+     }else{
+      console.log(" no nulo");
+     }
+    this.setState({postKey:this.state.feeds == null ? 0 : this.state.feeds.length })
+     
   }
 
   addPostButton(){
@@ -71,7 +72,7 @@ export default class ListFeed extends Component {
         })
         await AsyncStorage.setItem('posts',JSON.stringify(posts))
         this.loadFeeds()
-        this.setState({newPostDisplay:false,feedDisplay:true,titleNewPost:"",descNewPost:""})
+        this.setState({newPostDisplay:false,feedDisplay:true,titleNewPost:"",descNewPost:"",imageUriNewPost:""})
       }else{
         Toast.show({
           text:"Description shouldn't be empty",
@@ -98,22 +99,46 @@ export default class ListFeed extends Component {
     return (
       <View style={{flexDirection:"row",justifyContent:"center",alignItems:"center"}}>
 
-        {this.state.currentPage == 1 ? <></> : 
+        {this.state.currentPage == 1 ? <></> :
           <Icon type="FontAwesome" style={{color:"blue",fontSize:20}} 
             onPress={()=> this.setState({currentPage:+this.state.currentPage-1})} 
             name="arrow-circle-left"/>
         }
-        <Text style={{color:"blue",fontSize:20,marginHorizontal:10}}>{this.state.currentPage}</Text>
+        {this.state.feeds ? 
+          <Text style={{color:"blue",fontSize:20,marginHorizontal:10}}>{this.state.currentPage}</Text>
+        : <></>}
 
-        {this.state.currentPage*5 < this.state.feeds.length ?  
-         //1==1?
-          <Icon type="FontAwesome" style={{color:"blue",fontSize:20}} 
-            onPress={()=> this.setState({currentPage:+this.state.currentPage+1})} 
-            name="arrow-circle-right"/>
-        : <></>
+        {this.state.feeds ?
+          this.state.currentPage*5 < this.state.feeds.length ?
+            <Icon type="FontAwesome" style={{color:"blue",fontSize:20}} 
+              onPress={()=> this.setState({currentPage:+this.state.currentPage+1})} 
+              name="arrow-circle-right"/>
+          : <></>
+          : <></>
         }
       </View>
     )
+  }
+
+  uploadImage(){
+    ImagePicker.showImagePicker((response)=> {
+      console.log('Response: ' + response)
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+      } else if (response.error) {
+        console.log('ImagePicker Error: ', response.error);
+      } else if (response.customButton) {
+        console.log('User tapped custom button: ', response.customButton);
+      } else {
+        const source = { uri: response.uri };
+        console.log(source.uri);
+        //source.uri
+        //source
+        //require("../img/descarga.png")
+        this.setState({imageUriNewPost:""+source.uri})
+        
+      }
+    })
   }
 
   dateSort(){
@@ -132,8 +157,6 @@ export default class ListFeed extends Component {
       return a.title.localeCompare(b.title)
     })
     this.setState({feeds: posts})
-    console.log(this.state.feeds);
-    
   }
 
   render() {
@@ -144,10 +167,9 @@ export default class ListFeed extends Component {
             <FlatList data={this.state.feeds} renderItem={({item,index}) => (
               index < this.state.currentPage*5 && index >= (+this.state.currentPage-1)*5 ?
             <Card>
-              <Text>{index}</Text>
               <Icon type="FontAwesome" name="trash" style={stylesListFeed.trashIcon} />
               <CardItem style={{ width: "100%" }}>
-                <Image style={{ width: "100%" }} source={item.img} />
+                <Image style={{ width: "100%",height:300 }} source={""+item.img != "" ? {uri:""+item.img} : require("../img/descarga.png")} />
               </CardItem>
               <CardItem header>
                 <Text style={stylesListFeed.headerPost}>{item.title}</Text>
@@ -192,9 +214,11 @@ export default class ListFeed extends Component {
               <CardItem>
                 <Input multiline={true} numberOfLines={20} onChangeText={desc => this.setState({ descNewPost: desc })} style={stylesListFeed.inputFormat} />
               </CardItem>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={()=> this.uploadImage()}>
                 <CardItem>
-                  <Icon type="FontAwesome" name="image" /><Text> Upload an image</Text>
+                  <View style={{flexDirection:"row"}}>
+                    <Icon type="FontAwesome" name="image" /><Text> Upload an image</Text>
+                  </View>
                 </CardItem>
               </TouchableOpacity>
               <CardItem>
@@ -214,7 +238,7 @@ export default class ListFeed extends Component {
         </View>
 
         {this.state.feedDisplay ? 
-        <Footer style={{height:20,backgroundColor:"white",width:"100%", marginBottom:0,paddingBottom:0, flexDirection:"column",}}>
+        <Footer style={{height:60,backgroundColor:"white",width:"100%", marginBottom:0,paddingBottom:0, flexDirection:"column",}}>
           <Text style={{marginTop:15,marginBottom:5}}>Order by:</Text>
           <View style={{flexDirection:"row",justifyContent:"space-around",width:"75%"}}>
             <Button style={this.state.orderBy == "date" ? stylesListFeed.orderSelectedButton : stylesListFeed.orderUnselectedButton}
