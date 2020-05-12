@@ -4,6 +4,8 @@ import { Card,CardItem, Body, Header, Container, Content, Fab, Icon, Footer, But
 import Display from 'react-native-display';
 import AsyncStorage from '@react-native-community/async-storage';
 import {FlatList} from 'react-native-gesture-handler';
+import moment from 'moment';
+
 export default class ListFeed extends Component {
   constructor(props) {
     super(props);
@@ -16,7 +18,8 @@ export default class ListFeed extends Component {
       imageUriNewPost:require("../img/descarga.png"),
       locationNewPost:"Aguascalientesss Ags MX",
       postKey:0,
-      orderBy:"date"
+      orderBy:"date",
+      currentPage:1
     };
   }
 
@@ -31,6 +34,10 @@ export default class ListFeed extends Component {
      console.log("this.state.feeds")
      console.log(this.state.feeds)
      this.setState({postKey:this.state.feeds.length})
+  }
+
+  paginateFeeds(){
+
   }
 
   addPostButton(){
@@ -87,6 +94,28 @@ export default class ListFeed extends Component {
     this.setState({feedDisplay:true,newPostDisplay:false,titleNewPost:"",descNewPost:""})
   }
 
+  footerFlatList(){
+    return (
+      <View style={{flexDirection:"row",justifyContent:"center",alignItems:"center"}}>
+
+        {this.state.currentPage == 1 ? <></> : 
+          <Icon type="FontAwesome" style={{color:"blue",fontSize:20}} 
+            onPress={()=> this.setState({currentPage:+this.state.currentPage-1})} 
+            name="arrow-circle-left"/>
+        }
+        <Text style={{color:"blue",fontSize:20,marginHorizontal:10}}>{this.state.currentPage}</Text>
+
+        {this.state.currentPage*5 < this.state.feeds.length ?  
+         //1==1?
+          <Icon type="FontAwesome" style={{color:"blue",fontSize:20}} 
+            onPress={()=> this.setState({currentPage:+this.state.currentPage+1})} 
+            name="arrow-circle-right"/>
+        : <></>
+        }
+      </View>
+    )
+  }
+
   dateSort(){
     this.setState({orderBy:"date"})
     var posts = this.state.feeds
@@ -113,7 +142,9 @@ export default class ListFeed extends Component {
         <View style={{flex:1}}>
           <Display enable={this.state.feedDisplay}>
             <FlatList data={this.state.feeds} renderItem={({item,index}) => (
+              index < this.state.currentPage*5 && index >= (+this.state.currentPage-1)*5 ?
             <Card>
+              <Text>{index}</Text>
               <Icon type="FontAwesome" name="trash" style={stylesListFeed.trashIcon} />
               <CardItem style={{ width: "100%" }}>
                 <Image style={{ width: "100%" }} source={item.img} />
@@ -127,7 +158,7 @@ export default class ListFeed extends Component {
                     {item.desc}
                 </Text>
                   <Text style={stylesListFeed.datePost}>
-                    {item.datePosted}
+                    {moment(item.datePosted).format("MM/DD/YYYY")}
                 </Text>
                 </Body>
               </CardItem>
@@ -137,11 +168,13 @@ export default class ListFeed extends Component {
                 </Text>
               </CardItem>
             </Card>
+            :<></>
             )}
             key={item => item.key}
             keyExtractor={item => item.key.toString()}
             ListEmptyComponent={<Text style={{textAlign:"center",color:"gray"}}>You haven't posted anything yet!</Text>}
-            ListFooterComponent={<Text>Pag 1</Text>}
+            ListFooterComponent={this.footerFlatList()}
+              
             />
           </Display>
 
