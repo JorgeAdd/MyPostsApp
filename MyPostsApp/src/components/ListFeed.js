@@ -7,6 +7,7 @@ import {FlatList} from 'react-native-gesture-handler';
 import moment from 'moment';
 import ImagePicker from 'react-native-image-picker';
 import Geolocation from '@react-native-community/geolocation';
+import MapView, { Marker } from 'react-native-maps';
 
 export default class ListFeed extends Component {
   constructor(props) {
@@ -18,7 +19,10 @@ export default class ListFeed extends Component {
       titleNewPost:"",
       descNewPost:"",
       imageUriNewPost:"",
-      locationNewPost:"",
+      latitudeNewPost:"",
+      longitudeNewPost:"",
+      markerLatitude:"",
+      markerLongitude:"",
       postKey:0,
       orderBy:"date",
       currentPage:1,
@@ -27,7 +31,7 @@ export default class ListFeed extends Component {
   }
 
   componentDidMount(){
-    // AsyncStorage.removeItem('posts')
+    //AsyncStorage.removeItem('posts')
     this.loadFeeds();
   }
 
@@ -40,7 +44,8 @@ export default class ListFeed extends Component {
 
   addPostButton(){
     this.setState({feedDisplay:false,newPostDisplay:true})
-    Geolocation.getCurrentPosition(info => this.setState({locationNewPost:info.coords})) 
+    Geolocation.getCurrentPosition(info => this.setState({latitudeNewPost:info.coords.latitude,markerLatitude:info.coords.latitude,
+                                                          longitudeNewPost:info.coords.longitude,markerLongitude:info.coords.longitude}))
   }
 
   async newPostMethod(){
@@ -54,7 +59,8 @@ export default class ListFeed extends Component {
           title:""+this.state.titleNewPost,
           desc:""+this.state.descNewPost,
           img:this.state.imageUriNewPost,
-          location:""+this.state.locationNewPost,
+          latitude:""+this.state.latitudeNewPost,
+          longitude:""+this.state.longitudeNewPost,
           datePosted: new Date()
         }
     
@@ -136,15 +142,19 @@ export default class ListFeed extends Component {
   }
 
   locationCurrent(){
-    Geolocation.getCurrentPosition(info => this.setState({locationNewPost:info.coords}))
+    Geolocation.getCurrentPosition(info => this.setState({latitudeNewPost:info.coords.latitude,
+                                                          longitudeNewPost:info.coords.longitude})) 
     this.setState({useLocation:"current"})
   }
 
   locationMap(){
-
     this.setState({useLocation:"map"})
   }
 
+  markerPosition(event){
+    this.setState({latitudeNewPost:event.latitude,
+                  longitudeNewPost:event.longitude})
+  }
 
   dateSort(){
     this.setState({orderBy:"date"})
@@ -191,7 +201,7 @@ export default class ListFeed extends Component {
               </CardItem>
               <CardItem footer style={{ justifyContent: "center" }}>
                 <Text style={stylesListFeed.footerPost}>
-                  Posted in {item.location}. See in the map.
+                  Posted in {item.latitude}.{item.longitude} See in the map.
                 </Text>
               </CardItem>
             </Card>
@@ -206,49 +216,73 @@ export default class ListFeed extends Component {
           </Display>
 
           <Display enable={this.state.newPostDisplay}>
-            <Card>
-              <CardItem header>
-                <Text>Title *</Text>
-              </CardItem>
-              <CardItem>
-                <Input onChangeText={title => this.setState({ titleNewPost: title })} style={stylesListFeed.inputFormat} />
-              </CardItem>
-              <CardItem>
-                <Text>Description *</Text>
-              </CardItem>
-              <CardItem>
-                <Input multiline={true} numberOfLines={20} onChangeText={desc => this.setState({ descNewPost: desc })} style={stylesListFeed.inputFormat} />
-              </CardItem>
-              <TouchableOpacity onPress={()=> this.uploadImage()}>
-                <CardItem>
-                  <View style={{flexDirection:"row"}}>
-                    <Icon type="FontAwesome" name="image" /><Text> Upload an image</Text>
-                  </View>
+              <Card>
+                <CardItem header>
+                  <Text>Title *</Text>
                 </CardItem>
-              </TouchableOpacity>
-              <CardItem style={{flexDirection:"column",alignItems:"flex-start"}}>
-                <Button style={[this.state.useLocation == "current" ? stylesListFeed.orderSelectedButton : stylesListFeed.orderUnselectedButton,{margin:5}]}
-                onPress={()=> this.locationCurrent()}>
-                  <Text style={this.state.useLocation == "current" ? stylesListFeed.orderSelectedText : stylesListFeed.orderUnselectedText}>
-                    Use current location
-                  </Text>
-                </Button>
-                <Button style={[this.state.useLocation == "map" ? stylesListFeed.orderSelectedButton : stylesListFeed.orderUnselectedButton,{margin:5}]}
-                onPress={()=> this.locationMap()}>
-                  <Text style={this.state.useLocation == "map" ? stylesListFeed.orderSelectedText : stylesListFeed.orderUnselectedText}>
-                    Select location from map
-                  </Text>
-                </Button>
-              </CardItem>
-              <CardItem style={{justifyContent:"space-around"}}>
-                <Button style={stylesListFeed.orderSelectedButton} onPress={()=>this.newPostMethod()}>
-                  <Text style={stylesListFeed.orderSelectedText}>Post</Text>
-                </Button>
-                <Button style={stylesListFeed.orderUnselectedButton} onPress={()=>this.cancelNewPost()}>
-                  <Text style={stylesListFeed.orderUnselectedText}>Cancel</Text>
-                </Button>
-              </CardItem>
-            </Card>
+                <CardItem>
+                  <Input onChangeText={title => this.setState({ titleNewPost: title })} style={stylesListFeed.inputFormat} />
+                </CardItem>
+                <CardItem>
+                  <Text>Description *</Text>
+                </CardItem>
+                <CardItem>
+                  <Input multiline={true} numberOfLines={20} onChangeText={desc => this.setState({ descNewPost: desc })} style={stylesListFeed.inputFormat} />
+                </CardItem>
+                <TouchableOpacity onPress={()=> this.uploadImage()}>
+                  <CardItem>
+                    <View style={{flexDirection:"row"}}>
+                      <Icon type="FontAwesome" name="image" /><Text> Upload an image</Text>
+                    </View>
+                  </CardItem>
+                </TouchableOpacity>
+                <CardItem style={{flexDirection:"column",alignItems:"flex-start"}}>
+                  <Button style={[this.state.useLocation == "current" ? stylesListFeed.orderSelectedButton : stylesListFeed.orderUnselectedButton,{margin:5}]}
+                  onPress={()=> this.locationCurrent()}>
+                    <Text style={this.state.useLocation == "current" ? stylesListFeed.orderSelectedText : stylesListFeed.orderUnselectedText}>
+                      Use current location
+                    </Text>
+                  </Button>
+                  <Button style={[this.state.useLocation == "map" ? stylesListFeed.orderSelectedButton : stylesListFeed.orderUnselectedButton,{margin:5}]}
+                  onPress={()=> this.locationMap()}>
+                    <Text style={this.state.useLocation == "map" ? stylesListFeed.orderSelectedText : stylesListFeed.orderUnselectedText}>
+                      Select location from map
+                    </Text>
+                  </Button>
+                </CardItem>
+                {this.state.useLocation == "map" ? 
+                  <CardItem>
+                    <MapView
+                      initialRegion={{
+                        latitude:this.state.latitudeNewPost,
+                        longitude:this.state.longitudeNewPost,
+                        latitudeDelta:0.0922,
+                        longitudeDelta:0.0421
+                      }}
+                      style={{width:"100%",height:200}}
+                    >
+                      <Marker
+                        draggable
+                        coordinate={{
+                          latitude:this.state.markerLatitude,
+                          longitude:this.state.markerLongitude
+                        }}
+                        onDragEnd={(e) => this.markerPosition(e.nativeEvent.coordinate)}
+                        title={'New location'}
+                        description={'Drag this marker to the new location'}
+                      />
+                    </MapView>
+                  </CardItem>
+                :<></>}
+                <CardItem style={{justifyContent:"space-around"}}>
+                  <Button style={stylesListFeed.orderSelectedButton} onPress={()=>this.newPostMethod()}>
+                    <Text style={stylesListFeed.orderSelectedText}>Post</Text>
+                  </Button>
+                  <Button style={stylesListFeed.orderUnselectedButton} onPress={()=>this.cancelNewPost()}>
+                    <Text style={stylesListFeed.orderUnselectedText}>Cancel</Text>
+                  </Button>
+                </CardItem>
+              </Card>
           </Display>
 
         </View>
