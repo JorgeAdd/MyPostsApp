@@ -21,8 +21,8 @@ export default class ListFeed extends Component {
       descNewPost:"",
       imageUriNewPost:"",
       imageNameNewPost:"",
-      latitudeNewPost:"",
-      longitudeNewPost:"",
+      latitudeNewPost:0,
+      longitudeNewPost:0,
       markerLatitude:"",
       markerLongitude:"",
       postKey:0,
@@ -30,9 +30,10 @@ export default class ListFeed extends Component {
       currentPage:1,
       useLocation:"current",
       modalLocation:false,
-      modalLatitude:"",
-      modalLongitude:"",
-      uploadingImage:"noImage"
+      modalLatitude:0,
+      modalLongitude:0,
+      uploadingImage:"noImage",
+      activeFabOrder:false
     };
   }
 
@@ -82,7 +83,7 @@ export default class ListFeed extends Component {
         })
         await AsyncStorage.setItem('posts',JSON.stringify(posts))
         this.loadFeeds()
-        this.setState({newPostDisplay:false,feedDisplay:true,titleNewPost:"",descNewPost:"",imageUriNewPost:""})
+        this.setState({newPostDisplay:false,feedDisplay:true,titleNewPost:"",descNewPost:"",imageUriNewPost:"",uploadingImage:"noImage",imageNameNewPost:""})
       }else{
         Toast.show({
           text:"Description shouldn't be empty",
@@ -107,7 +108,7 @@ export default class ListFeed extends Component {
 
   footerFlatList(){
     return (
-      <View style={{flexDirection:"row",justifyContent:"center",alignItems:"center"}}>
+      <View style={{flexDirection:"row",justifyContent:"center",alignItems:"center",marginVertical:10}}>
 
         {this.state.currentPage == 1 ? <></> :
           <Icon type="FontAwesome" style={{color:"#0741AD",fontSize:20}} 
@@ -169,11 +170,22 @@ export default class ListFeed extends Component {
   }
 
   showModal(lat,lon){
-    this.setState({modalLocation:true,modalLatitude:lat,modalLongitude:lon})
+    if(!isNaN(lat) && !isNaN(lon)){
+      console.log(lat,lon);
+      console.log(parseFloat(lat),parseFloat(lon));
+      this.setState({modalLocation:true,modalLatitude:parseFloat(lat),modalLongitude:parseFloat(lon)})
+    }else{
+      Toast.show({
+        text:"No geolocation avaliable",
+        position:'bottom',
+        type:'danger',
+        duration:5000
+      })
+    }
   }
 
   dateSort(){
-    this.setState({orderBy:"date"})
+    this.setState({orderBy:"date",activeFabOrder:true,currentPage:1})
     var posts = this.state.feeds
     posts.sort(function(a,b){
       return new Date(b.datePosted) - new Date(a.datePosted)
@@ -182,7 +194,7 @@ export default class ListFeed extends Component {
   }
 
   titleSort(){
-    this.setState({orderBy:"title"})
+    this.setState({orderBy:"title",activeFabOrder:true,currentPage:1})
     var posts = this.state.feeds
     posts.sort(function(a,b){
       return a.title.localeCompare(b.title)
@@ -337,20 +349,38 @@ export default class ListFeed extends Component {
         </View>
 
         {this.state.feedDisplay ? 
-        <Footer style={{height:60,backgroundColor:"white",width:"100%", marginBottom:0,paddingBottom:0, flexDirection:"column",}}>
-          <Text style={{marginTop:20,marginBottom:5}}>Order by:</Text>
-          <View style={{flexDirection:"row",justifyContent:"space-around",width:"75%"}}>
-            <Button style={[this.state.orderBy == "date" ? stylesListFeed.orderSelectedButton : stylesListFeed.orderUnselectedButton,{width:"30%"}]}
+        
+          /* <Text style={{marginTop:0,marginBottom:5}}>Order by:</Text> */
+          /* <View style={{flexDirection:"row",justifyContent:"space-around",width:"75%"}}>
+            <Button disabled={this.state.feeds == null} style={[this.state.orderBy == "date" ? stylesListFeed.orderSelectedButton : stylesListFeed.orderUnselectedButton,{width:"30%"}]}
              onPress={()=> this.dateSort()}>
               <Text style={this.state.orderBy == "date" ? stylesListFeed.orderSelectedText : stylesListFeed.orderUnselectedText}>
                 Date</Text>
             </Button>
-            <Button style={[this.state.orderBy == "title" ? stylesListFeed.orderSelectedButton : stylesListFeed.orderUnselectedButton,{width:"30%"}]}
+            <Button disabled={this.state.feeds == null} style={[this.state.orderBy == "title" ? stylesListFeed.orderSelectedButton : stylesListFeed.orderUnselectedButton,{width:"30%"}]}
              onPress={()=> this.titleSort()}>
               <Text style={this.state.orderBy == "title" ? stylesListFeed.orderSelectedText : stylesListFeed.orderUnselectedText}>
                 Title</Text>
             </Button>
-          </View>
+          </View> */
+          <View>
+        <Fab
+          active={this.state.activeFabOrder}
+          position="bottomLeft"
+          direction="up"
+          style={stylesListFeed.fabButton}
+          onPress={() => this.setState({activeFabOrder:!this.state.activeFabOrder})}>
+            <View style={stylesListFeed.fabView}>
+            <Icon type="FontAwesome" name="sort" style={stylesListFeed.fabOrder}/>
+            </View>
+            <Button disabled={this.state.feeds == null} style={stylesListFeed.fabButton} onPress={()=>this.dateSort()}>
+              <Icon style={stylesListFeed.fabDateTitle} type="FontAwesome" name="calendar"/>
+            </Button>
+            <Button disabled={this.state.feeds == null} style={stylesListFeed.fabButton} onPress={()=>this.titleSort()}>
+              <Icon style={stylesListFeed.fabDateTitle} type="FontAwesome" name="font"/>
+            </Button>
+        </Fab>
+
         <Fab
           active={this.state.feedDisplay}
           position="bottomRight"
@@ -360,7 +390,7 @@ export default class ListFeed extends Component {
             <Icon name="add" style={stylesListFeed.fabIcon}/>
             </View>
         </Fab>
-        </Footer>
+        </View>
         :<></>}
         
       </Container>
@@ -421,10 +451,19 @@ const stylesListFeed = StyleSheet.create({
   fabView: { 
     width:"70%", 
     height:"70%",
-    alignItems:"center"
+    alignItems:"center",
+    justifyContent:"center"
   },
   fabIcon:{
     fontSize:40,
+    color:"#0741AD"
+  },
+  fabOrder:{
+    fontSize:30,
+    color:"#0741AD"
+  },
+  fabDateTitle:{
+    fontSize:25,
     color:"#0741AD"
   },
   inputFormat: {
