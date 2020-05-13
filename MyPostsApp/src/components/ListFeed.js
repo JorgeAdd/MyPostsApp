@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { View,Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View,Image, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Card,CardItem, Body, Header, Container, Content, Fab, Icon, Footer, Button,Text, Input, Toast } from 'native-base';
 import Display from 'react-native-display';
 import AsyncStorage from '@react-native-community/async-storage';
@@ -8,6 +8,7 @@ import moment from 'moment';
 import ImagePicker from 'react-native-image-picker';
 import Geolocation from '@react-native-community/geolocation';
 import MapView, { Marker } from 'react-native-maps';
+import Modal from 'react-native-modal';
 
 export default class ListFeed extends Component {
   constructor(props) {
@@ -19,6 +20,7 @@ export default class ListFeed extends Component {
       titleNewPost:"",
       descNewPost:"",
       imageUriNewPost:"",
+      imageNameNewPost:"",
       latitudeNewPost:"",
       longitudeNewPost:"",
       markerLatitude:"",
@@ -26,7 +28,11 @@ export default class ListFeed extends Component {
       postKey:0,
       orderBy:"date",
       currentPage:1,
-      useLocation:"current"
+      useLocation:"current",
+      modalLocation:false,
+      modalLatitude:"",
+      modalLongitude:"",
+      uploadingImage:"noImage"
     };
   }
 
@@ -96,7 +102,7 @@ export default class ListFeed extends Component {
   }
 
   cancelNewPost(){
-    this.setState({feedDisplay:true,newPostDisplay:false,titleNewPost:"",descNewPost:""})
+    this.setState({feedDisplay:true,newPostDisplay:false,titleNewPost:"",descNewPost:"",imageUriNewPost:"",uploadingImage:"noImage",imageNameNewPost:""})
   }
 
   footerFlatList(){
@@ -104,17 +110,17 @@ export default class ListFeed extends Component {
       <View style={{flexDirection:"row",justifyContent:"center",alignItems:"center"}}>
 
         {this.state.currentPage == 1 ? <></> :
-          <Icon type="FontAwesome" style={{color:"blue",fontSize:20}} 
+          <Icon type="FontAwesome" style={{color:"#0741AD",fontSize:20}} 
             onPress={()=> this.setState({currentPage:+this.state.currentPage-1})} 
             name="arrow-circle-left"/>
         }
         {this.state.feeds ? 
-          <Text style={{color:"blue",fontSize:20,marginHorizontal:10}}>{this.state.currentPage}</Text>
+          <Text style={{color:"#0741AD",fontSize:20,marginHorizontal:10}}>{this.state.currentPage}</Text>
         : <></>}
 
         {this.state.feeds ?
           this.state.currentPage*5 < this.state.feeds.length ?
-            <Icon type="FontAwesome" style={{color:"blue",fontSize:20}} 
+            <Icon type="FontAwesome" style={{color:"#0741AD",fontSize:20}} 
               onPress={()=> this.setState({currentPage:+this.state.currentPage+1})} 
               name="arrow-circle-right"/>
           : <></>
@@ -125,17 +131,23 @@ export default class ListFeed extends Component {
   }
 
   uploadImage(){
+    this.setState({uploadingImage:"loadingImage"})
     ImagePicker.showImagePicker((response)=> {
-      console.log('Response: ' + response)
       if (response.didCancel) {
+        this.setState({uploadingImage:"noImage"})
         console.log('User cancelled image picker');
       } else if (response.error) {
+        this.setState({uploadingImage:"noImage"})
         console.log('ImagePicker Error: ', response.error);
       } else if (response.customButton) {
+        this.setState({uploadingImage:"noImage"})
         console.log('User tapped custom button: ', response.customButton);
       } else {
         const source = { uri: response.uri };
-        this.setState({imageUriNewPost:""+source.uri})
+        this.setState({imageUriNewPost:""+source.uri,uploadingImage:"imageLoaded"})
+        uriLen = response.uri.split('/')
+        var imgName = response.fileName ? response.fileName : uriLen[uriLen.length-1]
+        this.setState({imageNameNewPost:imgName})
         
       }
     })
@@ -154,6 +166,10 @@ export default class ListFeed extends Component {
   markerPosition(event){
     this.setState({latitudeNewPost:event.latitude,
                   longitudeNewPost:event.longitude})
+  }
+
+  showModal(lat,lon){
+    this.setState({modalLocation:true,modalLatitude:lat,modalLongitude:lon})
   }
 
   dateSort(){
@@ -184,7 +200,7 @@ export default class ListFeed extends Component {
             <Card style={{padding:0,flex:1}}>
               <Icon type="FontAwesome" name="trash" style={stylesListFeed.trashIcon} />
               <CardItem style={{ width: "100%",paddingTop:0,paddingLeft:0,paddingRight:0, margin:0 }}>
-                <Image style={{ width: "100%",height:300 }} source={""+item.img != "" ? {uri:""+item.img} : require("../img/descarga.png")} />
+                <Image style={{ width: "100%",height:300 }} source={""+item.img != "" ? {uri:""+item.img} : require("../img/mypostsblack.png")} />
               </CardItem>
               <CardItem header>
                 <Text style={stylesListFeed.headerPost}>{item.title}</Text>
@@ -200,9 +216,11 @@ export default class ListFeed extends Component {
                 </Body>
               </CardItem>
               <CardItem footer style={{ justifyContent: "center" }}>
-                <Text style={stylesListFeed.footerPost}>
-                  Posted in {item.latitude}.{item.longitude} See in the map.
-                </Text>
+                <TouchableOpacity onPress={()=> this.showModal(item.latitude,item.longitude)}>
+                  <Text style={stylesListFeed.footerPost}>
+                    Look at the location were this post was made.
+                  </Text>
+                </TouchableOpacity>
               </CardItem>
             </Card>
             :<></>
@@ -213,6 +231,28 @@ export default class ListFeed extends Component {
             ListFooterComponent={this.footerFlatList()}
               
             />
+            <Modal isVisible={this.state.modalLocation}>
+              <MapView
+                initialRegion={{
+                  latitude:this.state.modalLatitude,
+                  longitude:this.state.modalLongitude,
+                  latitudeDelta:0.0122,
+                  longitudeDelta:0.0121
+                }}
+                style={{width:"100%",height:200}}>
+                  <Marker
+                    draggable={false}
+                    coordinate={{
+                      latitude:this.state.modalLatitude,
+                      longitude:this.state.modalLongitude
+                    }}
+                    title={'Your post was submited in this location'}
+                  />
+              </MapView>
+              <Button onPress={()=> this.setState({modalLocation:false})} style={{justifyContent:"center"}}>
+                <Text>Ok</Text>
+              </Button>
+            </Modal>
           </Display>
 
           <Display enable={this.state.newPostDisplay}>
@@ -231,8 +271,17 @@ export default class ListFeed extends Component {
                 </CardItem>
                 <TouchableOpacity onPress={()=> this.uploadImage()}>
                   <CardItem>
-                    <View style={{flexDirection:"row"}}>
-                      <Icon type="FontAwesome" name="image" /><Text> Upload an image</Text>
+                    <View style={{flexDirection:"row",alignItems:"center"}}>
+                      <Icon type="FontAwesome" name="image" />
+                      {this.state.uploadingImage == "loadingImage" ?
+                        <View style={{flexDirection:"row"}}>
+                          <Text>Uploading image... </Text><ActivityIndicator animating size="small" color="#0741AD" />
+                        </View>
+                      : this.state.uploadingImage == "imageLoaded" ?
+                        <Text style={{fontSize:14}}>{this.state.imageNameNewPost}</Text>
+                      : 
+                        <Text> Upload an image</Text>
+                      }
                     </View>
                   </CardItem>
                 </TouchableOpacity>
@@ -289,7 +338,7 @@ export default class ListFeed extends Component {
 
         {this.state.feedDisplay ? 
         <Footer style={{height:60,backgroundColor:"white",width:"100%", marginBottom:0,paddingBottom:0, flexDirection:"column",}}>
-          <Text style={{marginTop:15,marginBottom:5}}>Order by:</Text>
+          <Text style={{marginTop:20,marginBottom:5}}>Order by:</Text>
           <View style={{flexDirection:"row",justifyContent:"space-around",width:"75%"}}>
             <Button style={[this.state.orderBy == "date" ? stylesListFeed.orderSelectedButton : stylesListFeed.orderUnselectedButton,{width:"30%"}]}
              onPress={()=> this.dateSort()}>
@@ -321,7 +370,7 @@ export default class ListFeed extends Component {
 const stylesListFeed = StyleSheet.create({
   trashIcon: {
     alignSelf:"center",
-    color:"lightyellow",
+    color:"#84B5D9",
     marginTop:5,
     position:"absolute",
     zIndex:1,
@@ -345,25 +394,25 @@ const stylesListFeed = StyleSheet.create({
   },
   orderSelectedButton: {
     justifyContent:"center",
-    backgroundColor:"lightblue",
+    backgroundColor:"#84B5D9",
     borderWidth:1,
-    borderColor:"blue"    
+    borderColor:"#0741AD"    
   },
   orderUnselectedButton: {
     justifyContent:"center",
     backgroundColor:"#FFF",
     borderWidth:1,
-    borderColor:"blue"
+    borderColor:"#0741AD"
   },
   orderSelectedText: {
-    color:"blue"
+    color:"#0741AD"
   },
   orderUnselectedText: {
-    color:"blue"
+    color:"#0741AD"
   },
   fabButton: {
     flex:1,
-    backgroundColor:"lightblue",
+    backgroundColor:"#84B5D9",
     justifyContent:"center",
     alignItems:"center",
     alignContent:"center",
@@ -376,10 +425,10 @@ const stylesListFeed = StyleSheet.create({
   },
   fabIcon:{
     fontSize:40,
-    color:"blue"
+    color:"#0741AD"
   },
   inputFormat: {
-    borderColor:"lightblue",
+    borderColor:"#84B5D9",
     borderWidth:1,
     borderRadius:5,
     minHeight:50
