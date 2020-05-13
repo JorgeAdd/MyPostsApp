@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-community/async-storage';
 import {FlatList} from 'react-native-gesture-handler';
 import moment from 'moment';
 import ImagePicker from 'react-native-image-picker';
+import Geolocation from '@react-native-community/geolocation';
 
 export default class ListFeed extends Component {
   constructor(props) {
@@ -17,32 +18,29 @@ export default class ListFeed extends Component {
       titleNewPost:"",
       descNewPost:"",
       imageUriNewPost:"",
-      locationNewPost:"Aguascalientesss Ags MX",
+      locationNewPost:"",
       postKey:0,
       orderBy:"date",
-      currentPage:1
+      currentPage:1,
+      useLocation:"current"
     };
   }
 
   componentDidMount(){
-    //AsyncStorage.removeItem('posts')
+    // AsyncStorage.removeItem('posts')
     this.loadFeeds();
   }
 
   async loadFeeds(){
     var stringFeeds = await AsyncStorage.getItem('posts')
      this.setState({feeds:JSON.parse(stringFeeds)})
-     if(this.state.feeds == null){
-       console.log("nulo");
-     }else{
-      console.log(" no nulo");
-     }
     this.setState({postKey:this.state.feeds == null ? 0 : this.state.feeds.length })
      
   }
 
   addPostButton(){
     this.setState({feedDisplay:false,newPostDisplay:true})
+    Geolocation.getCurrentPosition(info => this.setState({locationNewPost:info.coords})) 
   }
 
   async newPostMethod(){
@@ -131,15 +129,22 @@ export default class ListFeed extends Component {
         console.log('User tapped custom button: ', response.customButton);
       } else {
         const source = { uri: response.uri };
-        console.log(source.uri);
-        //source.uri
-        //source
-        //require("../img/descarga.png")
         this.setState({imageUriNewPost:""+source.uri})
         
       }
     })
   }
+
+  locationCurrent(){
+    Geolocation.getCurrentPosition(info => this.setState({locationNewPost:info.coords}))
+    this.setState({useLocation:"current"})
+  }
+
+  locationMap(){
+
+    this.setState({useLocation:"map"})
+  }
+
 
   dateSort(){
     this.setState({orderBy:"date"})
@@ -166,9 +171,9 @@ export default class ListFeed extends Component {
           <Display enable={this.state.feedDisplay}>
             <FlatList data={this.state.feeds} renderItem={({item,index}) => (
               index < this.state.currentPage*5 && index >= (+this.state.currentPage-1)*5 ?
-            <Card>
+            <Card style={{padding:0,flex:1}}>
               <Icon type="FontAwesome" name="trash" style={stylesListFeed.trashIcon} />
-              <CardItem style={{ width: "100%" }}>
+              <CardItem style={{ width: "100%",paddingTop:0,paddingLeft:0,paddingRight:0, margin:0 }}>
                 <Image style={{ width: "100%",height:300 }} source={""+item.img != "" ? {uri:""+item.img} : require("../img/descarga.png")} />
               </CardItem>
               <CardItem header>
@@ -221,8 +226,19 @@ export default class ListFeed extends Component {
                   </View>
                 </CardItem>
               </TouchableOpacity>
-              <CardItem>
-                <Text>Location</Text>
+              <CardItem style={{flexDirection:"column",alignItems:"flex-start"}}>
+                <Button style={[this.state.useLocation == "current" ? stylesListFeed.orderSelectedButton : stylesListFeed.orderUnselectedButton,{margin:5}]}
+                onPress={()=> this.locationCurrent()}>
+                  <Text style={this.state.useLocation == "current" ? stylesListFeed.orderSelectedText : stylesListFeed.orderUnselectedText}>
+                    Use current location
+                  </Text>
+                </Button>
+                <Button style={[this.state.useLocation == "map" ? stylesListFeed.orderSelectedButton : stylesListFeed.orderUnselectedButton,{margin:5}]}
+                onPress={()=> this.locationMap()}>
+                  <Text style={this.state.useLocation == "map" ? stylesListFeed.orderSelectedText : stylesListFeed.orderUnselectedText}>
+                    Select location from map
+                  </Text>
+                </Button>
               </CardItem>
               <CardItem style={{justifyContent:"space-around"}}>
                 <Button style={stylesListFeed.orderSelectedButton} onPress={()=>this.newPostMethod()}>
@@ -241,12 +257,12 @@ export default class ListFeed extends Component {
         <Footer style={{height:60,backgroundColor:"white",width:"100%", marginBottom:0,paddingBottom:0, flexDirection:"column",}}>
           <Text style={{marginTop:15,marginBottom:5}}>Order by:</Text>
           <View style={{flexDirection:"row",justifyContent:"space-around",width:"75%"}}>
-            <Button style={this.state.orderBy == "date" ? stylesListFeed.orderSelectedButton : stylesListFeed.orderUnselectedButton}
+            <Button style={[this.state.orderBy == "date" ? stylesListFeed.orderSelectedButton : stylesListFeed.orderUnselectedButton,{width:"30%"}]}
              onPress={()=> this.dateSort()}>
               <Text style={this.state.orderBy == "date" ? stylesListFeed.orderSelectedText : stylesListFeed.orderUnselectedText}>
                 Date</Text>
             </Button>
-            <Button style={this.state.orderBy == "title" ? stylesListFeed.orderSelectedButton : stylesListFeed.orderUnselectedButton}
+            <Button style={[this.state.orderBy == "title" ? stylesListFeed.orderSelectedButton : stylesListFeed.orderUnselectedButton,{width:"30%"}]}
              onPress={()=> this.titleSort()}>
               <Text style={this.state.orderBy == "title" ? stylesListFeed.orderSelectedText : stylesListFeed.orderUnselectedText}>
                 Title</Text>
@@ -271,7 +287,7 @@ export default class ListFeed extends Component {
 const stylesListFeed = StyleSheet.create({
   trashIcon: {
     alignSelf:"center",
-    color:"pink",
+    color:"lightyellow",
     marginTop:5,
     position:"absolute",
     zIndex:1,
@@ -294,14 +310,12 @@ const stylesListFeed = StyleSheet.create({
     fontSize:12
   },
   orderSelectedButton: {
-    width:"30%",
     justifyContent:"center",
     backgroundColor:"lightblue",
     borderWidth:1,
     borderColor:"blue"    
   },
   orderUnselectedButton: {
-    width:"30%",
     justifyContent:"center",
     backgroundColor:"#FFF",
     borderWidth:1,
