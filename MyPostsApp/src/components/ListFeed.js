@@ -1,12 +1,13 @@
 import React, { Component } from 'react';
-import { View,Image, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View,Image, StyleSheet, TouchableOpacity, ActivityIndicator,Platform, PermissionsAndroid,Alert } from 'react-native';
 import { Card,CardItem, Body, Header, Container, Content, Fab, Icon, Footer, Button,Text, Input, Toast } from 'native-base';
 import Display from 'react-native-display';
 import AsyncStorage from '@react-native-community/async-storage';
-import {FlatList} from 'react-native-gesture-handler';
+import {FlatList, ScrollView} from 'react-native-gesture-handler';
 import moment from 'moment';
 import ImagePicker from 'react-native-image-picker';
 import Geolocation from '@react-native-community/geolocation';
+import GeolocationAndroid from 'react-native-geolocation-service';
 import MapView, { Marker } from 'react-native-maps';
 import Modal from 'react-native-modal';
 
@@ -33,7 +34,8 @@ export default class ListFeed extends Component {
       modalLatitude:0,
       modalLongitude:0,
       uploadingImage:"noImage",
-      activeFabOrder:false
+      activeFabOrder:false,
+      rerenderFeeds:true
     };
   }
 
@@ -44,15 +46,35 @@ export default class ListFeed extends Component {
 
   async loadFeeds(){
     var stringFeeds = await AsyncStorage.getItem('posts')
-     this.setState({feeds:JSON.parse(stringFeeds)})
-    this.setState({postKey:this.state.feeds == null ? 0 : this.state.feeds.length })
+     this.setState({feeds:JSON.parse(stringFeeds),rerenderFeeds:!this.state.rerenderFeeds})
      
+     if(this.state.feeds){
+         this.setState({postKey:+this.state.feeds[0].key+1})
+     }else{
+        this.setState({postKey: 0})
+     }
+    
   }
 
-  addPostButton(){
+  async addPostButton(){
     this.setState({feedDisplay:false,newPostDisplay:true})
-    Geolocation.getCurrentPosition(info => this.setState({latitudeNewPost:info.coords.latitude,markerLatitude:info.coords.latitude,
-                                                          longitudeNewPost:info.coords.longitude,markerLongitude:info.coords.longitude}))
+    
+    if(Platform.OS == "ios"){
+        Geolocation.getCurrentPosition(info => 
+            this.setState({latitudeNewPost:info.coords.latitude, markerLatitude:info.coords.latitude,
+            longitudeNewPost:info.coords.longitude, markerLongitude:info.coords.longitude}))    
+    }else{
+        await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION)
+        GeolocationAndroid.getCurrentPosition(position => {
+            this.setState({latitudeNewPost:position.coords.latitude, markerLatitude:position.coords.latitude,
+            longitudeNewPost:position.coords.longitude, markerLongitude:position.coords.longitude})},
+        
+        (error) => console.log(new Date(), error),
+        {enableHighAccuracy: false, timeout: 10000, maximumAge: 3000})    
+    }
+    
+    console.log("this.state.latitudeNewPost,this.state.longitudeNewPost")
+    console.log(this.state.latitudeNewPost,this.state.longitudeNewPost)
   }
 
   async newPostMethod(){
@@ -66,8 +88,8 @@ export default class ListFeed extends Component {
           title:""+this.state.titleNewPost,
           desc:""+this.state.descNewPost,
           img:this.state.imageUriNewPost,
-          latitude:""+this.state.latitudeNewPost,
-          longitude:""+this.state.longitudeNewPost,
+          latitude:this.state.latitudeNewPost,
+          longitude:this.state.longitudeNewPost,
           datePosted: new Date()
         }
     
@@ -104,6 +126,33 @@ export default class ListFeed extends Component {
 
   cancelNewPost(){
     this.setState({feedDisplay:true,newPostDisplay:false,titleNewPost:"",descNewPost:"",imageUriNewPost:"",uploadingImage:"noImage",imageNameNewPost:""})
+  }
+
+    alertDeletePost(keyPost){
+      Alert.alert(
+          'Delete post',
+          'Are you sure you want to delete this post?',
+          [
+            {
+                text: 'Delete post', style:"destructive", onPress: ()=> this.deletePost(keyPost)
+            },
+            {
+                text: 'Cancel', style:"cancel"
+            }],
+        {cancelable:true})
+  }
+
+  async deletePost(keyPost){
+    let posts = this.state.feeds
+    let postToDelete 
+    posts.find(function(post,i){
+        if(post.key == keyPost){
+            postToDelete = i
+        }
+    })
+    posts.splice(postToDelete,1)
+    this.setState({feeds:posts,rerenderFeeds:!this.state.rerenderFeeds})
+    await AsyncStorage.setItem('posts',JSON.stringify(posts))
   }
 
   footerFlatList(){
@@ -146,7 +195,7 @@ export default class ListFeed extends Component {
       } else {
         const source = { uri: response.uri };
         this.setState({imageUriNewPost:""+source.uri,uploadingImage:"imageLoaded"})
-        uriLen = response.uri.split('/')
+        let uriLen = response.uri.split('/')
         var imgName = response.fileName ? response.fileName : uriLen[uriLen.length-1]
         this.setState({imageNameNewPost:imgName})
         
@@ -154,9 +203,18 @@ export default class ListFeed extends Component {
     })
   }
 
-  locationCurrent(){
-    Geolocation.getCurrentPosition(info => this.setState({latitudeNewPost:info.coords.latitude,
-                                                          longitudeNewPost:info.coords.longitude})) 
+  async locationCurrent(){
+    if(Platform.OS == "ios"){
+        Geolocation.getCurrentPosition(info => 
+            this.setState({latitudeNewPost:info.coords.latitude,longitudeNewPost:info.coords.longitude}))    
+    }else{
+        await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION)
+        GeolocationAndroid.getCurrentPosition(position => {
+            this.setState({latitudeNewPost:position.coords.latitude,longitudeNewPost:position.coords.longitude})},
+        
+        (error) => console.log(new Date(), error),
+        {enableHighAccuracy: false, timeout: 10000, maximumAge: 3000})    
+    }
     this.setState({useLocation:"current"})
   }
 
@@ -171,8 +229,6 @@ export default class ListFeed extends Component {
 
   showModal(lat,lon){
     if(!isNaN(lat) && !isNaN(lon)){
-      console.log(lat,lon);
-      console.log(parseFloat(lat),parseFloat(lon));
       this.setState({modalLocation:true,modalLatitude:parseFloat(lat),modalLongitude:parseFloat(lon)})
     }else{
       Toast.show({
@@ -207,12 +263,12 @@ export default class ListFeed extends Component {
       <Container>
         <View style={{flex:1}}>
           <Display enable={this.state.feedDisplay}>
-            <FlatList data={this.state.feeds} renderItem={({item,index}) => (
+            <FlatList data={this.state.feeds} extraData={this.state.rerenderFeeds} renderItem={({item,index}) => (
               index < this.state.currentPage*5 && index >= (+this.state.currentPage-1)*5 ?
             <Card style={{padding:0,flex:1}}>
-              <Icon type="FontAwesome" name="trash" style={stylesListFeed.trashIcon} />
+              <Icon type="FontAwesome" onPress={()=> this.alertDeletePost(item.key)} name="trash" style={stylesListFeed.trashIcon} />
               <CardItem style={{ width: "100%",paddingTop:0,paddingLeft:0,paddingRight:0, margin:0 }}>
-                <Image style={{ width: "100%",height:300 }} source={""+item.img != "" ? {uri:""+item.img} : require("../img/mypostsblack.png")} />
+                <Image style={{ width: "100%",height:300 }} source={""+item.img != "" ? {uri:""+item.img} : require("../img/descarga.png")} />
               </CardItem>
               <CardItem header>
                 <Text style={stylesListFeed.headerPost}>{item.title}</Text>
@@ -268,6 +324,7 @@ export default class ListFeed extends Component {
           </Display>
 
           <Display enable={this.state.newPostDisplay}>
+              <ScrollView>
               <Card>
                 <CardItem header>
                   <Text>Title *</Text>
@@ -320,7 +377,7 @@ export default class ListFeed extends Component {
                         latitudeDelta:0.0922,
                         longitudeDelta:0.0421
                       }}
-                      style={{width:"100%",height:200}}
+                      style={{width:"100%",height:400}}
                     >
                       <Marker
                         draggable
@@ -344,6 +401,7 @@ export default class ListFeed extends Component {
                   </Button>
                 </CardItem>
               </Card>
+              </ScrollView>
           </Display>
 
         </View>
@@ -423,12 +481,14 @@ const stylesListFeed = StyleSheet.create({
     fontSize:12
   },
   orderSelectedButton: {
+    borderRadius:5,
     justifyContent:"center",
     backgroundColor:"#84B5D9",
     borderWidth:1,
     borderColor:"#0741AD"    
   },
   orderUnselectedButton: {
+    borderRadius:5,
     justifyContent:"center",
     backgroundColor:"#FFF",
     borderWidth:1,
@@ -470,6 +530,10 @@ const stylesListFeed = StyleSheet.create({
     borderColor:"#84B5D9",
     borderWidth:1,
     borderRadius:5,
-    minHeight:50
+    minHeight:50,
+    maxHeight:50
   }
 })
+
+
+//AIzaSyCNIAve5Ck8Wv5krKSoxzJ6jpAJVjYY6T8
