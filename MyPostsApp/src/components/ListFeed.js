@@ -601,6 +601,3 @@ const stylesListFeed = StyleSheet.create({
     maxHeight:50
   }
 })
-
-
-//AIzaSyCNIAve5Ck8Wv5krKSoxzJ6jpAJVjYY6T8
