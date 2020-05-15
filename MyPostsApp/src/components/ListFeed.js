@@ -56,6 +56,11 @@ export default class ListFeed extends Component {
     
   }
 
+  async updtFeeds(feeds){
+    AsyncStorage.setItem('posts',JSON.stringify(feeds));
+    //this.loadFeeds()
+  }
+
   async addPostButton(){
     this.setState({feedDisplay:false,newPostDisplay:true})
     
@@ -72,15 +77,12 @@ export default class ListFeed extends Component {
         (error) => console.log(new Date(), error),
         {enableHighAccuracy: false, timeout: 10000, maximumAge: 3000})    
     }
-    
-    console.log("this.state.latitudeNewPost,this.state.longitudeNewPost")
-    console.log(this.state.latitudeNewPost,this.state.longitudeNewPost)
   }
 
   async newPostMethod(){
     if(this.state.titleNewPost != ""){
       if(this.state.descNewPost != ""){
-        this.setState({postKey: this.state.postKey+1})
+        this.setState({postKey: +this.state.postKey+1})
     
         var newPost = 
         {
@@ -92,10 +94,8 @@ export default class ListFeed extends Component {
           longitude:this.state.longitudeNewPost,
           datePosted: new Date()
         }
-    
-        var posts = await AsyncStorage.getItem('posts')
+        var posts = this.state.feeds
         if(posts != null){
-          posts = JSON.parse(posts);
           posts.push(newPost)
         }else{
           posts = [newPost]
@@ -103,9 +103,8 @@ export default class ListFeed extends Component {
         posts.sort(function(a,b){
           return new Date(b.datePosted) - new Date(a.datePosted)
         })
-        await AsyncStorage.setItem('posts',JSON.stringify(posts))
-        this.loadFeeds()
-        this.setState({newPostDisplay:false,feedDisplay:true,titleNewPost:"",descNewPost:"",imageUriNewPost:"",uploadingImage:"noImage",imageNameNewPost:""})
+        this.updtFeeds(posts)
+        this.setState({feeds:posts, newPostDisplay:false,feedDisplay:true,titleNewPost:"",descNewPost:"",imageUriNewPost:"",uploadingImage:"noImage",imageNameNewPost:""})
       }else{
         Toast.show({
           text:"Description shouldn't be empty",
@@ -145,6 +144,7 @@ export default class ListFeed extends Component {
   async deletePost(keyPost){
     let posts = this.state.feeds
     let postToDelete 
+    
     posts.find(function(post,i){
         if(post.key == keyPost){
             postToDelete = i
@@ -152,7 +152,7 @@ export default class ListFeed extends Component {
     })
     posts.splice(postToDelete,1)
     this.setState({feeds:posts,rerenderFeeds:!this.state.rerenderFeeds})
-    await AsyncStorage.setItem('posts',JSON.stringify(posts))
+    this.updtFeeds(posts);
   }
 
   footerFlatList(){
@@ -174,7 +174,7 @@ export default class ListFeed extends Component {
               onPress={()=> this.setState({currentPage:+this.state.currentPage+1})} 
               name="arrow-circle-right"/>
           : <></>
-          : <></>
+        : <></>
         }
       </View>
     )
@@ -194,7 +194,8 @@ export default class ListFeed extends Component {
         console.log('User tapped custom button: ', response.customButton);
       } else {
         const source = { uri: response.uri };
-        this.setState({imageUriNewPost:""+source.uri,uploadingImage:"imageLoaded"})
+        this.setState({imageUriNewPost:{uri:"file://"+response.path,width:response.width,height:response.height,mime:"jpg"},
+          uploadingImage:"imageLoaded"})
         let uriLen = response.uri.split('/')
         var imgName = response.fileName ? response.fileName : uriLen[uriLen.length-1]
         this.setState({imageNameNewPost:imgName})
@@ -268,7 +269,7 @@ export default class ListFeed extends Component {
             <Card style={{padding:0,flex:1}}>
               <Icon type="FontAwesome" onPress={()=> this.alertDeletePost(item.key)} name="trash" style={stylesListFeed.trashIcon} />
               <CardItem style={{ width: "100%",paddingTop:0,paddingLeft:0,paddingRight:0, margin:0 }}>
-                <Image style={{ width: "100%",height:300 }} source={""+item.img != "" ? {uri:""+item.img} : require("../img/descarga.png")} />
+                <Image style={{ width: "100%",height:300 }} source={""+item.img != "" ? item.img : require("../img/descarga.png")} />
               </CardItem>
               <CardItem header>
                 <Text style={stylesListFeed.headerPost}>{item.title}</Text>
@@ -293,8 +294,8 @@ export default class ListFeed extends Component {
             </Card>
             :<></>
             )}
-            key={item => item.key}
-            keyExtractor={item => item.key.toString()}
+            key={(item,index) => index}
+            keyExtractor={(item,index) => index.toString()}
             ListEmptyComponent={<Text style={{textAlign:"center",color:"gray"}}>You haven't posted anything yet!</Text>}
             ListFooterComponent={this.footerFlatList()}
               
@@ -429,7 +430,7 @@ export default class ListFeed extends Component {
           style={stylesListFeed.fabButton}
           onPress={() => this.setState({activeFabOrder:!this.state.activeFabOrder})}>
             <View style={stylesListFeed.fabView}>
-            <Icon type="FontAwesome" name="sort" style={stylesListFeed.fabOrder}/>
+            <Icon type="FontAwesome" name="filter" style={stylesListFeed.fabOrder}/>
             </View>
             <Button disabled={this.state.feeds == null} style={stylesListFeed.fabButton} onPress={()=>this.dateSort()}>
               <Icon style={stylesListFeed.fabDateTitle} type="FontAwesome" name="calendar"/>
