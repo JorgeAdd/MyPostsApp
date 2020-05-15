@@ -250,6 +250,7 @@ exports[`ListFeed snapShot 1`] = `
             style={
               Object {
                 "alignItems": "center",
+                "alignSelf": "flex-start",
                 "backgroundColor": "#007aff",
                 "borderBottomWidth": null,
                 "borderColor": "#007aff",
