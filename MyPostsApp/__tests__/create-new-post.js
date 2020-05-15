@@ -6,7 +6,7 @@ import rerender from 'react-test-renderer';
 it('Create a new post', () => {
   let LFData = rerender.create(<ListFeed/>).getInstance();
   
-  LFData.setState({feeds: JSON.stringify([
+  LFData.setState({feeds: [
         {
             key:0,
             title:"title",
@@ -25,7 +25,7 @@ it('Create a new post', () => {
             longitude:"lon1",
             datePosted: new Date()
         }
-    ])})
+    ]})
     LFData.setState({titleNewPost:"new title",descNewPost:"new desc",postKey:1})
     console.log(LFData.state)
     LFData.newPostMethod()
