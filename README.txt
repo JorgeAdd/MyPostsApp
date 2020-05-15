@@ -1,4 +1,4 @@
-# MyPostsApp
+﻿# MyPostsApp
 Technical test for Founders Workshop
 
 Structure:
@@ -13,6 +13,7 @@ App.js
 
 In order to excecute the project once is cloned, you have to:
 cd MyPostsApp
+npm install
 yarn
 
 /*Extra steps for ios*/
