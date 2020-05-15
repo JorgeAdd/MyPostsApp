@@ -13,7 +13,7 @@ export default class AppContainer extends Component {
     return (
       <View style={{flex:1}}>
           <View style={stylesAppContainer.viewLatestPosts}>
-            <Image style={{ width: 100,height:70 }} source={require("../img/mypostsblue.png")} />
+            <Image style={{ width: 100,height:70 }} source={require("../img/mypostsprincipal.jpg")} />
           </View>
           <ListFeed/>
       </View>
@@ -34,6 +34,6 @@ const stylesAppContainer = StyleSheet.create({
     },
     filterIcon: {
       fontSize:24,
-      color:"#84B5D9"
+      color:"#3FC1C9"
     }
 })

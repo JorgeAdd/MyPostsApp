@@ -35,6 +35,7 @@ export default class App extends Component {
 
 const styles = StyleSheet.create({
   safeAreaView: {
+    backgroundColor:"white",
     flex:1
   }
 });

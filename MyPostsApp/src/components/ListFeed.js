@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { View,Image, StyleSheet, TouchableOpacity, ActivityIndicator,Platform, PermissionsAndroid,Alert } from 'react-native';
-import { Card,CardItem, Body, Header, Container, Content, Fab, Icon, Footer, Button,Text, Input, Toast } from 'native-base';
+import { Card,CardItem, Body, Header, Container, Content, Fab, Icon, Footer, Button,Text, Input, Toast, CheckBox, ListItem } from 'native-base';
 import Display from 'react-native-display';
 import AsyncStorage from '@react-native-community/async-storage';
 import {FlatList, ScrollView} from 'react-native-gesture-handler';
@@ -160,17 +160,17 @@ export default class ListFeed extends Component {
       <View style={{flexDirection:"row",justifyContent:"center",alignItems:"center",marginVertical:10}}>
 
         {this.state.currentPage == 1 ? <></> :
-          <Icon type="FontAwesome" style={{color:"#0741AD",fontSize:20}} 
+          <Icon type="FontAwesome" style={{color:"#364F6B",fontSize:20}} 
             onPress={()=> this.setState({currentPage:+this.state.currentPage-1})} 
             name="arrow-circle-left"/>
         }
         {this.state.feeds ? 
-          <Text style={{color:"#0741AD",fontSize:20,marginHorizontal:10}}>{this.state.currentPage}</Text>
+          <Text style={{color:"#364F6B",fontSize:20,marginHorizontal:10}}>{this.state.currentPage}</Text>
         : <></>}
 
         {this.state.feeds ?
           this.state.currentPage*5 < this.state.feeds.length ?
-            <Icon type="FontAwesome" style={{color:"#0741AD",fontSize:20}} 
+            <Icon type="FontAwesome" style={{color:"#364F6B",fontSize:20}} 
               onPress={()=> this.setState({currentPage:+this.state.currentPage+1})} 
               name="arrow-circle-right"/>
           : <></>
@@ -271,25 +271,28 @@ export default class ListFeed extends Component {
               <CardItem style={{ width: "100%",paddingTop:0,paddingLeft:0,paddingRight:0, margin:0 }}>
                 <Image style={{ width: "100%",height:300 }} source={""+item.img != "" ? item.img : require("../img/descarga.png")} />
               </CardItem>
-              <CardItem header>
+              <CardItem header style={{flexDirection:"column",alignItems:"flex-start"}}>
                 <Text style={stylesListFeed.headerPost}>{item.title}</Text>
+                <Text style={stylesListFeed.descPost}>
+                  {item.desc}
+                </Text>
               </CardItem>
               <CardItem style={{ flexDirection: "column" }}>
                 <Body>
-                  <Text style={stylesListFeed.descPost}>
-                    {item.desc}
-                </Text>
-                  <Text style={stylesListFeed.datePost}>
-                    {moment(item.datePosted).format("MM/DD/YYYY")}
-                </Text>
+                <View style={{width:"100%", flexDirection:"row",alignItems:"center",alignContent:"center", justifyContent: 'space-between',}}>
+                    <Text style={stylesListFeed.datePost}>
+                      {moment(item.datePosted).format("MM/DD/YYYY")}
+                  </Text>
+                  <TouchableOpacity onPress={()=> this.showModal(item.latitude,item.longitude)}>
+                    <Text style={stylesListFeed.footerPost}>
+                      Look at the location were this post was made.
+                    </Text>
+                  </TouchableOpacity>
+                </View>
                 </Body>
               </CardItem>
-              <CardItem footer style={{ justifyContent: "center" }}>
-                <TouchableOpacity onPress={()=> this.showModal(item.latitude,item.longitude)}>
-                  <Text style={stylesListFeed.footerPost}>
-                    Look at the location were this post was made.
-                  </Text>
-                </TouchableOpacity>
+              <CardItem footer style={{ justifyContent: "flex-start" }}>
+                
               </CardItem>
             </Card>
             :<></>
@@ -328,7 +331,7 @@ export default class ListFeed extends Component {
               <ScrollView>
               <Card>
                 <CardItem header>
-                  <Text>Title *</Text>
+                  <Text style={{fontWeight:"bold"}}>Title *</Text>
                 </CardItem>
                 <CardItem>
                   <Input onChangeText={title => this.setState({ titleNewPost: title })} style={stylesListFeed.inputFormat} />
@@ -342,32 +345,55 @@ export default class ListFeed extends Component {
                 <TouchableOpacity onPress={()=> this.uploadImage()}>
                   <CardItem>
                     <View style={{flexDirection:"row",alignItems:"center"}}>
-                      <Icon type="FontAwesome" name="image" />
+                      <Icon type="FontAwesome" style={{color:"#364f6b"}} name="image" />
                       {this.state.uploadingImage == "loadingImage" ?
                         <View style={{flexDirection:"row"}}>
-                          <Text>Uploading image... </Text><ActivityIndicator animating size="small" color="#0741AD" />
+                          <Text style={{color:"#364f6b"}}>Uploading image... </Text><ActivityIndicator animating size="small" color="#364F6B" />
                         </View>
                       : this.state.uploadingImage == "imageLoaded" ?
-                        <Text style={{fontSize:14}}>{this.state.imageNameNewPost}</Text>
+                        <Text style={{fontSize:14,color:"#364f6b"}}>{this.state.imageNameNewPost}</Text>
                       : 
-                        <Text> Upload an image</Text>
+                        <Text style={{color:"#364f6b"}}> Upload an image</Text>
                       }
                     </View>
                   </CardItem>
                 </TouchableOpacity>
                 <CardItem style={{flexDirection:"column",alignItems:"flex-start"}}>
-                  <Button style={[this.state.useLocation == "current" ? stylesListFeed.orderSelectedButton : stylesListFeed.orderUnselectedButton,{margin:5}]}
+                  {/* <Button style={[this.state.useLocation == "current" ? stylesListFeed.locSelectedButtonSecondary : stylesListFeed.locUnselectedButton,{margin:5}]}
                   onPress={()=> this.locationCurrent()}>
-                    <Text style={this.state.useLocation == "current" ? stylesListFeed.orderSelectedText : stylesListFeed.orderUnselectedText}>
+                    <Text style={this.state.useLocation == "current" ? stylesListFeed.locSelectedText : stylesListFeed.locUnselectedText}>
                       Use current location
                     </Text>
-                  </Button>
-                  <Button style={[this.state.useLocation == "map" ? stylesListFeed.orderSelectedButton : stylesListFeed.orderUnselectedButton,{margin:5}]}
+                  </Button> */}
+                  <ListItem style={{width:"100%",borderBottomWidth:0,flexDirection:"column"}}>
+                    <View style={{flexDirection:"row",alignItems:"center"}}>
+                      <CheckBox checked={this.state.useLocation == "current"} onPress={()=> this.locationCurrent()}
+                      color="#fc5185"/>
+                        <Body>  
+                          <Text style={{color:"black",fontSize:18}}>Use current location</Text>
+                        </Body>
+                    </View>
+                    {this.state.useLocation == "current" ? 
+                    <TouchableOpacity onPress={()=> this.showModal(this.state.latitudeNewPost,this.state.longitudeNewPost)} style={{alignSelf:"flex-start",marginLeft:"10%"}}>
+                      <Text style={{color:"#364f6b",textDecorationLine:"underline",marginTop:5}}>
+                        View location
+                      </Text>
+                    </TouchableOpacity>
+                    :<></>}
+                  </ListItem>
+                  <ListItem style={{width:"100%"}}>
+                    <CheckBox checked={this.state.useLocation == "map"} onPress={()=>this.locationMap()}
+                    color="#fc5185"/>
+                    <Body>
+                      <Text style={{fontSize:18}}>Select location from map</Text>
+                    </Body>
+                  </ListItem>
+                  {/* <Button style={[this.state.useLocation == "map" ? stylesListFeed.locSelectedButtonSecondary : stylesListFeed.locUnselectedButton,{margin:5}]}
                   onPress={()=> this.locationMap()}>
-                    <Text style={this.state.useLocation == "map" ? stylesListFeed.orderSelectedText : stylesListFeed.orderUnselectedText}>
+                    <Text style={this.state.useLocation == "map" ? stylesListFeed.locSelectedText : stylesListFeed.locUnselectedText}>
                       Select location from map
                     </Text>
-                  </Button>
+                  </Button> */}
                 </CardItem>
                 {this.state.useLocation == "map" ? 
                   <CardItem>
@@ -394,62 +420,70 @@ export default class ListFeed extends Component {
                   </CardItem>
                 :<></>}
                 <CardItem style={{justifyContent:"space-around"}}>
-                  <Button style={stylesListFeed.orderSelectedButton} onPress={()=>this.newPostMethod()}>
-                    <Text style={stylesListFeed.orderSelectedText}>Post</Text>
+                  <Button style={stylesListFeed.postSelectedButton} onPress={()=>this.newPostMethod()}>
+                    <Text style={stylesListFeed.postSelectedText}>Post</Text>
                   </Button>
-                  <Button style={stylesListFeed.orderUnselectedButton} onPress={()=>this.cancelNewPost()}>
-                    <Text style={stylesListFeed.orderUnselectedText}>Cancel</Text>
+                  <Button style={stylesListFeed.postUnselectedButton} onPress={()=>this.cancelNewPost()}>
+                    <Text style={stylesListFeed.postUnselectedText}>Cancel</Text>
                   </Button>
                 </CardItem>
               </Card>
               </ScrollView>
+              <Modal isVisible={this.state.modalLocation}>
+              <MapView
+                initialRegion={{
+                  latitude:this.state.modalLatitude,
+                  longitude:this.state.modalLongitude,
+                  latitudeDelta:0.0122,
+                  longitudeDelta:0.0121
+                }}
+                style={{width:"100%",height:200}}>
+                  <Marker
+                    draggable={false}
+                    coordinate={{
+                      latitude:this.state.modalLatitude,
+                      longitude:this.state.modalLongitude
+                    }}
+                    title={'This is your current location'}
+                  />
+              </MapView>
+              <Button onPress={()=> this.setState({modalLocation:false})} style={{justifyContent:"center"}}>
+                <Text>Ok</Text>
+              </Button>
+            </Modal>
           </Display>
 
         </View>
 
         {this.state.feedDisplay ? 
-        
-          /* <Text style={{marginTop:0,marginBottom:5}}>Order by:</Text> */
-          /* <View style={{flexDirection:"row",justifyContent:"space-around",width:"75%"}}>
-            <Button disabled={this.state.feeds == null} style={[this.state.orderBy == "date" ? stylesListFeed.orderSelectedButton : stylesListFeed.orderUnselectedButton,{width:"30%"}]}
-             onPress={()=> this.dateSort()}>
-              <Text style={this.state.orderBy == "date" ? stylesListFeed.orderSelectedText : stylesListFeed.orderUnselectedText}>
-                Date</Text>
-            </Button>
-            <Button disabled={this.state.feeds == null} style={[this.state.orderBy == "title" ? stylesListFeed.orderSelectedButton : stylesListFeed.orderUnselectedButton,{width:"30%"}]}
-             onPress={()=> this.titleSort()}>
-              <Text style={this.state.orderBy == "title" ? stylesListFeed.orderSelectedText : stylesListFeed.orderUnselectedText}>
-                Title</Text>
-            </Button>
-          </View> */
           <View>
-        <Fab
-          active={this.state.activeFabOrder}
-          position="bottomLeft"
-          direction="up"
-          style={stylesListFeed.fabButton}
-          onPress={() => this.setState({activeFabOrder:!this.state.activeFabOrder})}>
-            <View style={stylesListFeed.fabView}>
-            <Icon type="FontAwesome" name="filter" style={stylesListFeed.fabOrder}/>
-            </View>
-            <Button disabled={this.state.feeds == null} style={stylesListFeed.fabButton} onPress={()=>this.dateSort()}>
-              <Icon style={stylesListFeed.fabDateTitle} type="FontAwesome" name="calendar"/>
-            </Button>
-            <Button disabled={this.state.feeds == null} style={stylesListFeed.fabButton} onPress={()=>this.titleSort()}>
-              <Icon style={stylesListFeed.fabDateTitle} type="FontAwesome" name="font"/>
-            </Button>
-        </Fab>
+            <Fab
+              active={this.state.activeFabOrder}
+              position="bottomLeft"
+              direction="up"
+              style={stylesListFeed.fabButton}
+              onPress={() => this.setState({activeFabOrder:!this.state.activeFabOrder})}>
+                <View style={stylesListFeed.fabView}>
+                <Icon type="FontAwesome" name="filter" style={stylesListFeed.fabOrder}/>
+                </View>
+                <Button disabled={this.state.feeds == null} style={stylesListFeed.fabButtonSec} onPress={()=>this.dateSort()}>
+                  <Icon style={stylesListFeed.fabDateTitle} type="FontAwesome" name="calendar"/>
+                </Button>
+                <Button disabled={this.state.feeds == null} style={stylesListFeed.fabButtonSec} onPress={()=>this.titleSort()}>
+                  <Icon style={stylesListFeed.fabDateTitle} type="FontAwesome" name="font"/>
+                </Button>
+            </Fab>
 
-        <Fab
-          active={this.state.feedDisplay}
-          position="bottomRight"
-          style={stylesListFeed.fabButton}
-          onPress={() => this.addPostButton()}>
-            <View style={stylesListFeed.fabView}>
-            <Icon name="add" style={stylesListFeed.fabIcon}/>
-            </View>
-        </Fab>
-        </View>
+            <Fab
+              active={this.state.feedDisplay}
+              position="bottomRight"
+              style={stylesListFeed.fabButton}
+              onPress={() => this.addPostButton()}>
+                <View style={stylesListFeed.fabView}>
+                <Icon name="add" style={stylesListFeed.fabIcon}/>
+                </View>
+            </Fab>
+          </View>
         :<></>}
         
       </Container>
@@ -459,7 +493,7 @@ export default class ListFeed extends Component {
 const stylesListFeed = StyleSheet.create({
   trashIcon: {
     alignSelf:"center",
-    color:"#84B5D9",
+    color:"#3FC1C9",
     marginTop:5,
     position:"absolute",
     zIndex:1,
@@ -474,36 +508,68 @@ const stylesListFeed = StyleSheet.create({
     fontSize:16
   },
   datePost: {
-    fontSize:12,
+    fontSize:14,
     color:"gray",
     textAlign:"left"
   },
   footerPost: {
-    fontSize:12
+    fontSize:14,
+    color:"#364f6b",
+    textDecorationLine:"underline"
   },
-  orderSelectedButton: {
+  postSelectedButton: {
+    width:"40%",
     borderRadius:5,
     justifyContent:"center",
-    backgroundColor:"#84B5D9",
+    backgroundColor:"#3FC1C9",
     borderWidth:1,
-    borderColor:"#0741AD"    
+    borderColor:"#364F6B"    
   },
-  orderUnselectedButton: {
+  postUnselectedButton: {
+    width:"40%",
     borderRadius:5,
     justifyContent:"center",
     backgroundColor:"#FFF",
     borderWidth:1,
-    borderColor:"#0741AD"
+    borderColor:"#364F6B"
   },
-  orderSelectedText: {
-    color:"#0741AD"
+  postSelectedText: {
+    color:"#364F6B"
   },
-  orderUnselectedText: {
-    color:"#0741AD"
+  postUnselectedText: {
+    color:"#364F6B"
+  },
+  locSelectedButtonSecondary: {
+    borderRadius:5,
+    justifyContent:"center",
+    backgroundColor:"#fc5185",
+    borderWidth:1,
+    borderColor:"#f5f5f5"    
+  },
+  locUnselectedButton: {
+    borderRadius:5,
+    justifyContent:"center",
+    backgroundColor:"#f5f5f5",
+    borderWidth:1,
+    borderColor:"#fc5185"
+  },
+  locSelectedText: {
+    color:"#f5f5f5"
+  },
+  locUnselectedText: {
+    color:"#fc5185"
   },
   fabButton: {
     flex:1,
-    backgroundColor:"#84B5D9",
+    backgroundColor:"#3FC1C9",
+    justifyContent:"center",
+    alignItems:"center",
+    alignContent:"center",
+    alignSelf:"center"
+  },
+  fabButtonSec: {
+    flex:1,
+    backgroundColor:"#fc5185",
     justifyContent:"center",
     alignItems:"center",
     alignContent:"center",
@@ -517,18 +583,18 @@ const stylesListFeed = StyleSheet.create({
   },
   fabIcon:{
     fontSize:40,
-    color:"#0741AD"
+    color:"#364F6B"
   },
   fabOrder:{
     fontSize:30,
-    color:"#0741AD"
+    color:"#364F6B"
   },
   fabDateTitle:{
     fontSize:25,
-    color:"#0741AD"
+    color:"#f5f5f5"
   },
   inputFormat: {
-    borderColor:"#84B5D9",
+    borderColor:"#3FC1C9",
     borderWidth:1,
     borderRadius:5,
     minHeight:50,
