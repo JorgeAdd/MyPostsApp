@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Image, StyleSheet } from 'react-native';
 import ListFeed from './ListFeed';
 import { Icon } from 'native-base';
 export default class AppContainer extends Component {
@@ -11,10 +11,9 @@ export default class AppContainer extends Component {
 
   render() {
     return (
-      <View style={{margin:10,flex:1}}>
+      <View style={{flex:1}}>
           <View style={stylesAppContainer.viewLatestPosts}>
-            <Text/>
-            <Text style={stylesAppContainer.latestPosts}>LATEST POSTS</Text>
+            <Image style={{ width: 100,height:70 }} source={require("../img/mypostsprincipal.jpg")} />
           </View>
           <ListFeed/>
       </View>
@@ -23,7 +22,8 @@ export default class AppContainer extends Component {
 }
 const stylesAppContainer = StyleSheet.create({
     viewLatestPosts: {
-        margin:10,
+      alignItems:"center"
+  
     },
     latestPosts: {
         alignSelf:"center",
@@ -34,6 +34,6 @@ const stylesAppContainer = StyleSheet.create({
     },
     filterIcon: {
       fontSize:24,
-      color:"lightblue"
+      color:"#3FC1C9"
     }
 })

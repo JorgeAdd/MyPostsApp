@@ -10,10 +10,18 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@react-native-community/async-storage": "^1.10.0",
+    "@react-native-community/geolocation": "^2.0.2",
+    "moment": "^2.25.3",
     "native-base": "^2.12.1",
     "react": "16.11.0",
     "react-native": "0.62.2",
     "react-native-display": "^1.0.8",
+    "react-native-geolocation-service": "^4.0.1",
+    "react-native-gesture-handler": "^1.6.1",
+    "react-native-image-picker": "^2.3.1",
+    "react-native-maps": "^0.27.1",
+    "react-native-modal": "^11.5.6",
     "react-native-vector-icons": "^6.6.0"
   },
   "devDependencies": {
@@ -27,6 +35,13 @@
     "react-test-renderer": "16.11.0"
   },
   "jest": {
-    "preset": "react-native"
+    "preset": "react-native",
+    "transformIgnorePatterns": [
+      "/node_modules/(?!native-base)/"
+    ],
+    "setupFiles": [
+      "./setupJest/jestSetupFile.js",
+      "./node_modules/react-native-gesture-handler/jestSetup.js"
+    ]
   }
 }
