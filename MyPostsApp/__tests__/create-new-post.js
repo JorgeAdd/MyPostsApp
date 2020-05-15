@@ -27,9 +27,7 @@ it('Create a new post', () => {
         }
     ]})
     LFData.setState({titleNewPost:"new title",descNewPost:"new desc",postKey:1})
-    console.log(LFData.state)
     LFData.newPostMethod()
-    console.log(LFData.state)
         expect(LFData.state.titleNewPost).toEqual("")
         expect(LFData.state.descNewPost).toEqual("")  
         expect(LFData.state.feeds.length).toBe(3)

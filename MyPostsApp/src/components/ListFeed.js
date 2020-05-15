@@ -194,7 +194,7 @@ export default class ListFeed extends Component {
         console.log('User tapped custom button: ', response.customButton);
       } else {
         const source = { uri: response.uri };
-        this.setState({imageUriNewPost:{uri:"file://"+response.path,width:response.width,height:response.height,mime:"jpg"},
+        this.setState({imageUriNewPost:{uri:Platform.OS == "ios" ? response.uri : "file://"+response.path,width:response.width,height:response.height,mime:"jpg"},
           uploadingImage:"imageLoaded"})
         let uriLen = response.uri.split('/')
         var imgName = response.fileName ? response.fileName : uriLen[uriLen.length-1]
